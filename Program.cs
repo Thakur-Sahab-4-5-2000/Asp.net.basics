@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using StackExchange.Redis;
 using Microsoft.Extensions.FileProviders;
+using Learning_Backend.Background_Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IRepoWrapper, RepoWrapper>();
+builder.Services.AddScoped<IEmailSender, EmailSender>();
+builder.Services.AddHostedService<EmailQueueWorker>();
+
 
 builder.Services.AddControllers();
 

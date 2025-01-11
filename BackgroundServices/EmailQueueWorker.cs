@@ -1,36 +1,45 @@
 ﻿using StackExchange.Redis;
 using System.Text.Json;
 using Learning_Backend.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 
-public class EmailQueueWorker : BackgroundService
+namespace Learning_Backend.Background_Service
 {
-    private readonly IConnectionMultiplexer _redis;
-    private readonly IEmailSender _emailSender;
-
-    public EmailQueueWorker(IConnectionMultiplexer redis, IEmailSender emailSender)
+    public class EmailQueueWorker : BackgroundService
     {
-        _redis = redis;
-        _emailSender = emailSender;
-    }
+        private readonly IConnectionMultiplexer _redis;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        var db = _redis.GetDatabase();
-
-        while (!stoppingToken.IsCancellationRequested)
+        public EmailQueueWorker(IConnectionMultiplexer redis, IServiceScopeFactory serviceScopeFactory)
         {
-            var emailTaskJson = await db.ListLeftPopAsync("emailQueue");
+            _redis = redis;
+            _serviceScopeFactory = serviceScopeFactory;
+        }
 
-            if (!emailTaskJson.IsNullOrEmpty)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            var db = _redis.GetDatabase();
+
+            while (!stoppingToken.IsCancellationRequested)
             {
-                var emailTask = JsonSerializer.Deserialize<dynamic>(emailTaskJson);
-                var email = (string)emailTask.email;
-                var subject = (string)emailTask.subject;
-                var body = (string)emailTask.body;
-                await _emailSender.SendEmailAsync(email, subject, body);
-            }
+                var emailTaskJson = await db.ListLeftPopAsync("emailQueue");
 
-            await Task.Delay(5000, stoppingToken); 
+                if (!emailTaskJson.IsNullOrEmpty)
+                {
+                    var emailTask = JsonSerializer.Deserialize<dynamic>(emailTaskJson);
+                    var email = (string)emailTask.email;
+                    var subject = (string)emailTask.subject;
+                    var body = (string)emailTask.body;
+
+                    using (var scope = _serviceScopeFactory.CreateScope())
+                    {
+                        var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+                        await emailSender.SendEmailAsync(email, subject, body);
+                    }
+                }
+
+                await Task.Delay(5000, stoppingToken); // Delay before checking for new tasks
+            }
         }
     }
 }

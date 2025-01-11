@@ -104,13 +104,13 @@ public class UserRepository : IUserRepo
                 returnValues.StatusCode = 200;
                 returnValues.Message = "User created successfully";
 
-                //string emailSubject = configuration.GetValue<string>("EmailSetting:APP_NAME");
-                //string emailBody = "User Registeration Email";
+                string emailSubject = configuration.GetValue<string>("EmailSetting:APP_NAME");
+                string emailBody = "User Registeration Email";
 
-                //var db = connectionMultiplexer.GetDatabase();
-                //var emailTask = new { email = model.Email, subject = emailSubject, body = emailBody };
-                //await db.ListRightPushAsync("emailQueue", JsonSerializer.Serialize(emailTask));
-                
+                var db = connectionMultiplexer.GetDatabase();
+                var emailTask = new { email = model.Email, subject = emailSubject, body = emailBody };
+                await db.ListRightPushAsync("emailQueue", JsonSerializer.Serialize(emailTask));
+
             }
         }
         catch (Exception ex)
