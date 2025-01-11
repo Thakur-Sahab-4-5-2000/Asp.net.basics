@@ -68,6 +68,9 @@ namespace Learning_Backend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<string>("ProfileImagePath")
+                        .HasColumnType("longtext");
+
                     b.Property<int>("Role")
                         .HasColumnType("int");
 

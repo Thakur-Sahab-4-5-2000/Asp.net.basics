@@ -5,18 +5,23 @@ using Learning_Backend.DTOS;
 using Learning_Backend.Models.LearningDatabaseModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 public class UserRepository : IUserRepo
 {
-    private LearningDatabase learningDatabase;
-    private IConfiguration configuration;
-    public UserRepository(LearningDatabase _learningDatabase, IConfiguration _configuration)
+    private readonly LearningDatabase learningDatabase;
+    private readonly IConfiguration configuration;
+    private readonly IConnectionMultiplexer connectionMultiplexer;
+    public UserRepository(LearningDatabase _learningDatabase, IConfiguration _configuration, 
+        IConnectionMultiplexer _connectionMultiplexer)
     {
         learningDatabase = _learningDatabase;
         configuration = _configuration;
+        connectionMultiplexer = _connectionMultiplexer;
     }
 
     public async Task<ReturnValues<UserDTO>> LoginRequest(LoginUserDTO model)
@@ -39,6 +44,7 @@ public class UserRepository : IUserRepo
                     returnValues.StatusCode = 200;
                     returnValues.Message = "User found";
                     returnValues.Token = token;
+                    returnValues.ImagePath = res.ProfileImagePath;
                 }
                 else
                 {
@@ -74,10 +80,37 @@ public class UserRepository : IUserRepo
                 userModel.Email = model.Email;
                 userModel.Role = model.Role;
                 userModel.PasswordHash = model.PasswordHash.HashPassword();
+
+                if (model.ProfileImage != null && model.ProfileImage.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ProfileImage.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await model.ProfileImage.CopyToAsync(stream);
+                    }
+                    userModel.ProfileImagePath = "/uploads/" + uniqueFileName;
+                }
+                
                 await learningDatabase.Users.AddAsync(userModel);
                 await learningDatabase.SaveChangesAsync();
                 returnValues.StatusCode = 200;
                 returnValues.Message = "User created successfully";
+
+                //string emailSubject = configuration.GetValue<string>("EmailSetting:APP_NAME");
+                //string emailBody = "User Registeration Email";
+
+                //var db = connectionMultiplexer.GetDatabase();
+                //var emailTask = new { email = model.Email, subject = emailSubject, body = emailBody };
+                //await db.ListRightPushAsync("emailQueue", JsonSerializer.Serialize(emailTask));
+                
             }
         }
         catch (Exception ex)
@@ -117,7 +150,7 @@ public class UserRepository : IUserRepo
         ReturnValues<UserDTO> returnValues = new ReturnValues<UserDTO>();
         try
         {
-            var res = await learningDatabase.Users
+                var res = await learningDatabase.Users
                 .Select(user => new UserDTO
                 {
                     Id = user.Id,
@@ -127,17 +160,18 @@ public class UserRepository : IUserRepo
                 })
                 .ToListAsync();
 
-            if (res.Count>0)  
-            {
-                returnValues.StatusCode = 200;
-                returnValues.Message = "Users found";
-                returnValues.DataArray = res;
-            }
-            else
-            {
-                returnValues.StatusCode = 404;
-                returnValues.Message = "Users not found";
-            }
+                if (res.Count > 0)
+                {
+                    returnValues.StatusCode = 200;
+                    returnValues.Message = "Users found";
+                    returnValues.DataArray = res;
+                }
+                else
+                {
+                    returnValues.StatusCode = 404;
+                    returnValues.Message = "Users not found";
+                }
+            
         }
         catch (Exception ex)
         {

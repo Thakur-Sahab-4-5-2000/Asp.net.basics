@@ -24,6 +24,8 @@ namespace Learning_Backend.DTOS
         [Required]
         public int Role { get; set; }
 
+        public IFormFile? ProfileImage { get; set; }
+
         public void Validate()
         {
             var errors = new List<string>();

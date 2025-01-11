@@ -7,5 +7,6 @@
             public T? Data { get; set; } = null;
             public IEnumerable<T>? DataArray { get; set; }
             public string? Token { get; set; } = null;
+            public string? ImagePath { get; set; } = null;
         }
 }
