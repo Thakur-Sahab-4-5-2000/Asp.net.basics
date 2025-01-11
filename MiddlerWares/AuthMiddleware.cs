@@ -70,8 +70,8 @@ public class AuthMiddleware
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
-                ValidIssuer = "YourIssuer",
-                ValidAudience = "YourAudience",
+                ValidIssuer = "Shubham Thakur",
+                ValidAudience = "Janleba",
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetValue<string>("JWT_KEYS")))
             };
 

@@ -6,9 +6,7 @@
     {
         public Task<ReturnValues<UserDTO>> GetUserById(int id);
         public Task<ReturnValues<UserDTO>> GetAllUsers();
-
         public Task<ReturnValues<UserDTO>> LoginRequest(LoginUserDTO model);
-
         public Task<ReturnValues<UserDTO>> RegisterUser(RegisterUserDTO model);
     }
 }

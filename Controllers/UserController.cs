@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Learning_Backend.Contracts;
 using Learning_Backend.DTOS;
-using Learning_Backend.Models.LearningDatabaseModels;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Learning_Backend.Controllers
 {
@@ -37,26 +37,40 @@ namespace Learning_Backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
         {
-           
-                var res = await _repoWrapper.User.GetAllUsers();
+            var roleClaim = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
 
-                if (res != null && res.StatusCode == 200)
+            if (roleClaim != null && int.TryParse(roleClaim, out int role))
+            {
+                if (role != 1) 
                 {
-                    return Ok(res);
+                    return Forbid();
                 }
-                else
-                {
-                    return NotFound(res);
-                }
+            }
+            else
+            {
+                return Unauthorized();
+            }
+
+            var res = await _repoWrapper.User.GetAllUsers();
+
+            if (res != null && res.StatusCode == 200)
+            {
+                return Ok(res);
+            }
+            else
+            {
+                return NotFound(res);
+            }
         }
+
 
         [AllowAnonymous]
         [HttpPost("signup")]
-        public async Task<IActionResult> CreateUser([FromBody] RegisterUserDTO user)
+        public async Task<IActionResult> CreateUser([FromForm] RegisterUserDTO user)
         {
                 var res = await _repoWrapper.User.RegisterUser(user);
 
-                if (res != null && res.StatusCode == 201)
+                if (res.StatusCode == 201)
                 {
                     return Ok(res);
                 }

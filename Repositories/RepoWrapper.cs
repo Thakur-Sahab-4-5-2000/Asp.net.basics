@@ -1,5 +1,6 @@
 ﻿using Learning_Backend.Databases;
 using Learning_Backend.Contracts;
+using StackExchange.Redis;
 
 namespace Learning_Backend.Repositories
 {
@@ -9,11 +10,14 @@ namespace Learning_Backend.Repositories
         private readonly object _lock = new object();
         private readonly LearningDatabase _learningDatabase;
         private readonly IConfiguration _configuration;
+        private readonly IConnectionMultiplexer _connectionMultiplexer;
 
-        public RepoWrapper(LearningDatabase learningDatabase, IConfiguration configuration)
+        public RepoWrapper(LearningDatabase learningDatabase, IConfiguration configuration, 
+            IConnectionMultiplexer connectionMultiplexer)
         {
             _learningDatabase = learningDatabase;
             _configuration = configuration;
+            _connectionMultiplexer = connectionMultiplexer;
         }
 
         public IUserRepo User
@@ -26,7 +30,7 @@ namespace Learning_Backend.Repositories
                     {
                         if (user == null)
                         {
-                            user = new UserRepository(_learningDatabase, _configuration);
+                            user = new UserRepository(_learningDatabase, _configuration, _connectionMultiplexer);
                         }
                     }
                 }
