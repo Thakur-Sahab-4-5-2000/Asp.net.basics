@@ -51,7 +51,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IRepoWrapper, RepoWrapper>();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddHostedService<EmailQueueWorker>();
-
+builder.Services.AddScoped<RoleService>();
+builder.Services.AddSingleton<CacheService>();
 
 builder.Services.AddControllers();
 

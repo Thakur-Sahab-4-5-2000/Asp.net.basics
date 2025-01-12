@@ -15,7 +15,8 @@
         {
            // modelBuilder.Entity<Users>().HasData(
            //new Users { Id = 1, Username = "admin", PasswordHash = "admin123", Email = "admin@example.com", Role = 1 },
-           //new Users { Id = 2, Username = "Shubham", PasswordHash = "user123", Email = "user@example.com", Role = 2 }
+        
+   //new Users { Id = 2, Username = "Shubham", PasswordHash = "user123", Email = "user@example.com", Role = 2 }
            //);
 
             modelBuilder.Entity<Roles>().HasData(

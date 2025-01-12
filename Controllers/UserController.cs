@@ -11,10 +11,12 @@ namespace Learning_Backend.Controllers
     public class UserController : ControllerBase
     {
         private readonly IRepoWrapper _repoWrapper;
+        private readonly RoleService _roleService;
 
-        public UserController(IRepoWrapper repoWrapper)
+        public UserController(IRepoWrapper repoWrapper, RoleService roleService)
         {
             _repoWrapper = repoWrapper;
+            _roleService = roleService;
         }
 
         [Authorize]
@@ -63,6 +65,35 @@ namespace Learning_Backend.Controllers
             }
         }
 
+        [HttpGet("roles")]
+        public async Task<IActionResult> GetAllRoles()
+        {
+            var roleClaim = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (roleClaim != null && int.TryParse(roleClaim, out int role))
+            {
+                if (role != 1)
+                {
+                    return Forbid();
+                }
+            }
+            else
+            {
+                return Unauthorized();
+            }
+
+            var res = await _roleService.GetRolesAsync();
+
+            if (res != null)
+            {
+                return Ok(res);
+            }
+            else
+            {
+                return NotFound(res);
+            }
+        }
+
         [Authorize]
         [HttpPost("updateUser")]
         public async Task<IActionResult> UpdateUser([FromForm] UpdateUserDTO model)
@@ -80,6 +111,7 @@ namespace Learning_Backend.Controllers
                 return NotFound(res);
             }
         }
+
 
 
         [AllowAnonymous]

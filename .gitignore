@@ -28,6 +28,7 @@ x86/
 [Aa]rchive/
 [Aa]ssemblyInfo.cs
 appsettings.Development.json
+appsettings.json
 
 # .NET Core specific files
 project.lock.json
