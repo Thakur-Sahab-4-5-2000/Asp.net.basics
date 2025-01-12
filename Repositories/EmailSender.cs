@@ -33,7 +33,7 @@ namespace Learning_Backend.Repositories
                 string appName = _configuration.GetValue<string>("EmailSetting:APP_NAME");
                 string emailSender  = _configuration.GetValue<string>("EmailSetting:EMAIL");
                 mimeMessage.From.Add(new MailboxAddress(appName, emailSender));
-                mimeMessage.To.Add(new MailboxAddress("Recipient Name", email));
+                mimeMessage.To.Add(new MailboxAddress(email, email));
                 mimeMessage.Subject = subject;
 
                 var bodyBuilder = new BodyBuilder { HtmlBody = message };

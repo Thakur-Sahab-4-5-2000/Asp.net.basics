@@ -63,6 +63,24 @@ namespace Learning_Backend.Controllers
             }
         }
 
+        [Authorize]
+        [HttpPost("updateUser")]
+        public async Task<IActionResult> UpdateUser([FromForm] UpdateUserDTO model)
+        {
+            var userIdClaim = HttpContext.User.FindFirst("UserId")?.Value;
+
+            var res = await _repoWrapper.User.UpdateUsers(model, int.Parse(userIdClaim));
+
+            if (res != null && res.StatusCode == 200)
+            {
+                return Ok(res);
+            }
+            else
+            {
+                return NotFound(res);
+            }
+        }
+
 
         [AllowAnonymous]
         [HttpPost("signup")]
@@ -70,7 +88,7 @@ namespace Learning_Backend.Controllers
         {
                 var res = await _repoWrapper.User.RegisterUser(user);
 
-                if (res.StatusCode == 201)
+                if (res.StatusCode == 200)
                 {
                     return Ok(res);
                 }

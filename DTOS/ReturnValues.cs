@@ -10,3 +10,4 @@
             public string? ImagePath { get; set; } = null;
         }
 }
+

@@ -6,8 +6,15 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using StackExchange.Redis;
-using Microsoft.Extensions.FileProviders;
 using Learning_Backend.Background_Service;
+
+string rootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+
+if (!Directory.Exists(rootPath))
+{
+    Directory.CreateDirectory(rootPath);
+}
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,8 +31,6 @@ builder.Services.AddDbContext<LearningDatabase>(options =>
     ServiceLifetime.Scoped
 );
 builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnection")));
-builder.Services.AddTransient<IEmailSender, EmailSender>();
-builder.Services.AddHostedService<EmailQueueWorker>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -52,6 +57,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddLogging();
 
+
 var app = builder.Build();
 
 // Remove the Swagger-related middleware
@@ -61,8 +67,8 @@ if (app.Environment.IsDevelopment())
     // app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API v1"));
 }
 
-app.UseDefaultFiles();   // Serve index.html as the default file
-app.UseStaticFiles();    // Serve static files from wwwroot folder
+app.UseDefaultFiles(); 
+app.UseStaticFiles();  
 
 app.UseMiddleware<AuthMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();

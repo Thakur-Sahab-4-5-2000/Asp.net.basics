@@ -1,7 +1,7 @@
 ﻿using StackExchange.Redis;
 using System.Text.Json;
 using Learning_Backend.Contracts;
-using Microsoft.Extensions.DependencyInjection;
+using Learning_Backend.DTOS;
 
 namespace Learning_Backend.Background_Service
 {
@@ -22,23 +22,27 @@ namespace Learning_Backend.Background_Service
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                var emailTaskJson = await db.ListLeftPopAsync("emailQueue");
+                var emailTaskJson = await db.ListLeftPopAsync("taskQueue");
 
                 if (!emailTaskJson.IsNullOrEmpty)
                 {
-                    var emailTask = JsonSerializer.Deserialize<dynamic>(emailTaskJson);
-                    var email = (string)emailTask.email;
-                    var subject = (string)emailTask.subject;
-                    var body = (string)emailTask.body;
+                    var emailTask = JsonSerializer.Deserialize<EmailTaskDTO>(emailTaskJson);
 
-                    using (var scope = _serviceScopeFactory.CreateScope())
+                    if (emailTask != null)
                     {
-                        var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
-                        await emailSender.SendEmailAsync(email, subject, body);
+                        var email = emailTask.email;
+                        var subject = emailTask.subject;
+                        var body = emailTask.body;
+
+                        using (var scope = _serviceScopeFactory.CreateScope())
+                        {
+                            var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+                            await emailSender.SendEmailAsync(email, subject, body);
+                        }
                     }
                 }
 
-                await Task.Delay(5000, stoppingToken); // Delay before checking for new tasks
+                await Task.Delay(5000, stoppingToken);
             }
         }
     }

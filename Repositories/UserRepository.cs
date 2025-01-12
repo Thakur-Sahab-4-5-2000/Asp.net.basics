@@ -4,6 +4,7 @@ using Learning_Backend.Databases;
 using Learning_Backend.DTOS;
 using Learning_Backend.Models.LearningDatabaseModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.IdentityModel.Tokens.Jwt;
@@ -40,7 +41,7 @@ public class UserRepository : IUserRepo
                 bool hashedPassword = model.Password.VerifyPassword(res.PasswordHash);
                 if (hashedPassword)
                 {
-                    string token = GenerateToken(res.Username, res.Role.ToString());
+                    string token = GenerateToken(res.Username, res.Role.ToString(),res.Id.ToString());
                     returnValues.StatusCode = 200;
                     returnValues.Message = "User found";
                     returnValues.Token = token;
@@ -105,11 +106,11 @@ public class UserRepository : IUserRepo
                 returnValues.Message = "User created successfully";
 
                 string emailSubject = configuration.GetValue<string>("EmailSetting:APP_NAME");
-                string emailBody = "User Registeration Email";
+                string emailBody = configuration.GetValue<string>("EmailTemplates:UserRegistration");
 
                 var db = connectionMultiplexer.GetDatabase();
                 var emailTask = new { email = model.Email, subject = emailSubject, body = emailBody };
-                await db.ListRightPushAsync("emailQueue", JsonSerializer.Serialize(emailTask));
+                await db.ListRightPushAsync("taskQueue", JsonSerializer.Serialize(emailTask));
 
             }
         }
@@ -180,7 +181,84 @@ public class UserRepository : IUserRepo
         return returnValues;
     }
 
-    private string GenerateToken(string username, string role)
+    public async Task<ReturnValues<UserDTO>> UpdateUsers(UpdateUserDTO model, int userId)
+    {
+        ReturnValues<UserDTO> returnValues = new ReturnValues<UserDTO>();
+        try
+        {
+            model.Validate();
+
+            var userExists = await learningDatabase.Users.FirstOrDefaultAsync(user => user.Id == userId);
+
+            if (userExists == null)
+            {
+                returnValues.StatusCode = 404;
+                returnValues.Message = "User Not Found";
+                return returnValues;
+            }
+
+            bool passwordIsCorrect = model.OldPassword.VerifyPassword(userExists.PasswordHash);
+            if (!passwordIsCorrect)
+            {
+                returnValues.Message = "Please enter the correct password";
+                returnValues.StatusCode = 400;
+                return returnValues;
+            }
+
+            userExists.Email = model.Email ?? userExists.Email;
+
+            if (!string.IsNullOrEmpty(model.Password))
+            {
+                userExists.PasswordHash = model.Password.HashPassword();
+            }
+
+            if (model.ProfilePicture != null)
+            {
+                var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                Directory.CreateDirectory(path);
+
+                var profilePictureInDB = userExists.ProfileImagePath?.Split("/")[2];
+                if (!string.IsNullOrEmpty(profilePictureInDB))
+                {
+                    var totalFilePath = Path.Combine(path, profilePictureInDB);
+
+                    if (File.Exists(totalFilePath))
+                    {
+                        File.Delete(totalFilePath);
+                    }
+                }
+
+                var newProfileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ProfilePicture.FileName);
+
+                var newProfilePath = Path.Combine(path, newProfileName);
+                using (var stream = new FileStream(newProfilePath, FileMode.Create))
+                {
+                    await model.ProfilePicture.CopyToAsync(stream);
+                }
+
+                userExists.ProfileImagePath = "/uploads/" + newProfileName;
+            }
+
+            learningDatabase.Update(userExists);
+            await learningDatabase.SaveChangesAsync();
+
+            returnValues.Message = "User updated successfully";
+            returnValues.StatusCode = 200;
+
+        }
+        catch (Exception ex)
+        {
+            returnValues.Message = "An error occurred while updating the user.";
+            returnValues.StatusCode = 500;
+            Console.WriteLine(ex);
+        }
+
+        return returnValues;
+    }
+
+
+
+    private string GenerateToken(string username, string role, string userId)
     {
         var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetValue<string>("JWT_KEYS")));
         var signingCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
@@ -188,7 +266,8 @@ public class UserRepository : IUserRepo
         var claims = new[]
         {
             new Claim(ClaimTypes.Name, username),
-            new Claim(ClaimTypes.Role, role)
+            new Claim(ClaimTypes.Role, role),
+            new Claim("UserId", userId),
         };
 
         var token = new JwtSecurityToken(
