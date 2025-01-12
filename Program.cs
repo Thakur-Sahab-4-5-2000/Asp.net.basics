@@ -57,6 +57,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddLogging();
 
+var cors = builder.Configuration.GetSection("Cors").Get<string[]>();
 
 var app = builder.Build();
 
@@ -77,5 +78,12 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.UseCors(regions =>
+{
+    regions.AllowAnyHeader();
+    regions.AllowAnyMethod();
+    regions.AllowCredentials();
+    regions.WithOrigins(origins: cors);
+});
 
 app.Run();

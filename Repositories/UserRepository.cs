@@ -41,7 +41,7 @@ public class UserRepository : IUserRepo
                 bool hashedPassword = model.Password.VerifyPassword(res.PasswordHash);
                 if (hashedPassword)
                 {
-                    string token = GenerateToken(res.Username, res.Role.ToString(),res.Id.ToString());
+                    string token = GenerateToken(res.Username, res.RolesId.ToString(),res.Id.ToString());
                     returnValues.StatusCode = 200;
                     returnValues.Message = "User found";
                     returnValues.Token = token;
@@ -71,7 +71,7 @@ public class UserRepository : IUserRepo
             var userExists = await learningDatabase.Users.FirstOrDefaultAsync(u => u.Username == model.Username);
             if (userExists != null)
             {
-                returnValues.StatusCode = 200;
+                returnValues.StatusCode = 201;
                 returnValues.Message = "User already exists";
             }
             else
@@ -79,8 +79,17 @@ public class UserRepository : IUserRepo
                 Users userModel = new Users();
                 userModel.Username = model.Username;
                 userModel.Email = model.Email;
-                userModel.Role = model.Role;
                 userModel.PasswordHash = model.PasswordHash.HashPassword();
+
+                var roleExists = await learningDatabase.Roles
+                    .FirstOrDefaultAsync(role => role.Id == model.Role);
+                if (roleExists == null)
+                {
+                    returnValues.StatusCode = 400;
+                    returnValues.Message = "Role not found";
+                    return returnValues;
+                }
+                userModel.RolesId = roleExists.Id;
 
                 if (model.ProfileImage != null && model.ProfileImage.Length > 0)
                 {
@@ -99,10 +108,10 @@ public class UserRepository : IUserRepo
                     }
                     userModel.ProfileImagePath = "/uploads/" + uniqueFileName;
                 }
-                
+
                 await learningDatabase.Users.AddAsync(userModel);
                 await learningDatabase.SaveChangesAsync();
-                returnValues.StatusCode = 200;
+                returnValues.StatusCode = 201;
                 returnValues.Message = "User created successfully";
 
                 string emailSubject = configuration.GetValue<string>("EmailSetting:APP_NAME");
@@ -111,7 +120,6 @@ public class UserRepository : IUserRepo
                 var db = connectionMultiplexer.GetDatabase();
                 var emailTask = new { email = model.Email, subject = emailSubject, body = emailBody };
                 await db.ListRightPushAsync("taskQueue", JsonSerializer.Serialize(emailTask));
-
             }
         }
         catch (Exception ex)
@@ -120,6 +128,7 @@ public class UserRepository : IUserRepo
         }
         return returnValues;
     }
+
 
     public async Task<ReturnValues<UserDTO>> GetUserById(int id)
     {
@@ -157,7 +166,7 @@ public class UserRepository : IUserRepo
                     Id = user.Id,
                     Name = user.Username,
                     Email = user.Email,
-                    Role = user.Role
+                    Role = user.RolesId
                 })
                 .ToListAsync();
 

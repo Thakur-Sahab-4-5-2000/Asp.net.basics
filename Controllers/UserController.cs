@@ -104,7 +104,7 @@ namespace Learning_Backend.Controllers
         {
             var res = await _repoWrapper.User.LoginRequest(model);
 
-            if (res != null && res.StatusCode == 201)
+            if (res.StatusCode == 201)
             {
                 return Ok(res);
             }

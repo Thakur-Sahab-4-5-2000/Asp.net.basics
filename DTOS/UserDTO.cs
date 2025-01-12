@@ -21,7 +21,7 @@
                 Id = user.Id,
                 Name = user.Username,
                 Email = user.Email,
-                Role = user.Role
+                Role = user.RolesId
             };
         }
 

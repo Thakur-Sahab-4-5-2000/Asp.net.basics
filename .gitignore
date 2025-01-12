@@ -6,6 +6,15 @@
 # Windows specific
 Thumbs.db
 Desktop.ini
+# Ignore the Migrations folder
+/Migrations/
+
+# Ignore the wwwroot folder
+/wwwroot/
+
+# Other common ignores
+bin/
+obj/
 
 # .NET build results
 [Dd]ebug/

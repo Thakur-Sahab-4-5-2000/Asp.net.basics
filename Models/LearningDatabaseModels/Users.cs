@@ -26,8 +26,10 @@
         [Column(TypeName = "varchar(50)")]
         public string Email { get; set; }
 
-        [Required]
-        public int Role { get; set; }
+        [ForeignKey("Roles")]
+        public int RolesId { get; set; } 
+        public Roles Roles { get; set; }
+
 
         public string? ProfileImagePath { get; set; }
     }
